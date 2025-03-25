@@ -12,7 +12,7 @@ from accelerate import Accelerator
 from diffusers import AudioLDM2UNet2DConditionModel, DiffusionPipeline
 
 import src.hooked_model.scheduler
-from src.hooked_model.hooked_model import HookedDiffusionModel
+from src.hooked_model.hooked_model_audioldm2 import HookedAudioLDM2Model
 from src.hooked_model.utils import get_timesteps
 from src.sae.cache_activations_runner import CacheActivationsRunner
 from src.sae.config import CacheActivationsRunnerConfig
@@ -48,7 +48,7 @@ def run():
     pipe.scheduler = scheduler
     pipe.unet = model
 
-    hooked_model = HookedDiffusionModel(
+    hooked_model = HookedAudioLDM2Model(
         model=model,
         scheduler=scheduler,
         encode_prompt=pipe.encode_prompt,

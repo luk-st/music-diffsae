@@ -109,7 +109,10 @@ class TrainConfig(Serializable):
 class CacheActivationsRunnerConfig:
     hook_names: list[str] | None = None
     new_cached_activations_path: str | None = None
+    dataset_type: str | None = None
     dataset_name: str = "guangyil/laion-coco-aesthetic"
+    dataset_duplicate_rows: int | None = None
+    negative_prompt: str | None = None
     split: str = "train"
     column: str = "caption"
     device: torch.device | str = "cuda"
@@ -122,7 +125,8 @@ class CacheActivationsRunnerConfig:
     max_num_examples: int | None = None
     cache_every_n_timesteps: int = 1
     guidance_scale: float = 9.0
-
+    audio_length_in_s: float | None = None
+    num_waveforms_per_prompt: int | None = None
     hf_repo_id: str | None = None
     hf_num_shards: int | None = None
     hf_revision: str = "main"

@@ -54,11 +54,19 @@ class CacheActivationsRunner:
                 self.accelerator.device,
             )
 
-            self.dataset = load_dataset(
-                self.cfg.dataset_name,
-                split=self.cfg.split,
-                columns=[self.cfg.column],
-            )
+            if self.cfg.dataset_type is None or self.cfg.dataset_type == "hf":
+                self.dataset = load_dataset(
+                    self.cfg.dataset_name,
+                    split=self.cfg.split,
+                    columns=[self.cfg.column],
+                )
+            elif self.cfg.dataset_type == "csv":
+                self.dataset = Dataset.from_csv(self.cfg.dataset_name).select_columns(
+                    [self.cfg.column]
+                )
+                if self.cfg.dataset_duplicate_rows is not None:
+                    indices = [i for i in range(len(self.dataset)) for _ in range(self.cfg.dataset_duplicate_rows)]
+                    self.dataset = self.dataset.select(indices)
 
             self.dataset = self.dataset.shuffle(self.cfg.seed)
             if limit := self.cfg.max_num_examples:
@@ -284,6 +292,9 @@ class CacheActivationsRunner:
                     num_inference_steps=self.cfg.num_inference_steps,
                     positions_to_cache=self.cfg.hook_names,
                     guidance_scale=self.cfg.guidance_scale,
+                    audio_length_in_s=self.cfg.audio_length_in_s,
+                    num_waveforms_per_prompt=self.cfg.num_waveforms_per_prompt,
+                    negative_prompt=self.cfg.negative_prompt,
                 )
 
             self.accelerator.wait_for_everyone()

@@ -20,24 +20,31 @@ from src.sae.config import CacheActivationsRunnerConfig
 
 def run():
     config = CacheActivationsRunnerConfig(
-        hook_names=["up_blocks.1.attentions.5", "up_blocks.1.attentions.10"],
+        hook_names=[
+            "up_blocks.1.attentions.5.transformer_blocks.0",
+            "up_blocks.1.attentions.5.transformer_blocks.1",
+            "up_blocks.1.attentions.10.transformer_blocks.0",
+            "up_blocks.1.attentions.10.transformer_blocks.1",
+        ],
+        flatten_act_freq=True,
+        arbitrary_F_dims=[4, 4, 4, 4],
         dataset_type="csv",
         dataset_name="data/musiccaps_public.csv",
-        dataset_duplicate_rows=4,
+        dataset_duplicate_rows=8,
         negative_prompt="Low quality, average quality.",
         model_name="cvssp/audioldm2-large",
         num_inference_steps=200,
         audio_length_in_s=9.0,
         num_waveforms_per_prompt=1,
         guidance_scale=5.0,
-        cache_every_n_timesteps=10
+        cache_every_n_timesteps=10,
     )
     args = parse(config)
     accelerator = Accelerator()
 
-    pipe = DiffusionPipeline.from_pretrained(
-        args.model_name, torch_dtype=args.dtype, use_safetensors=True
-    ).to(accelerator.device)
+    pipe = DiffusionPipeline.from_pretrained(args.model_name, torch_dtype=args.dtype, use_safetensors=True).to(
+        accelerator.device
+    )
     model = AudioLDM2UNet2DConditionModel.from_pretrained(
         args.model_name,
         subfolder="unet",

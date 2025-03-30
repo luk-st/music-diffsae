@@ -13,21 +13,33 @@ import torch.distributed as dist
 from datasets import Dataset, concatenate_datasets
 from simple_parsing import parse
 
-from src.sae.config import TrainConfig
+from src.sae.config import SaeConfig, TrainConfig
 from src.sae.trainer import SaeTrainer
 
 
 @dataclass
-class RunConfig(TrainConfig):
+class ALDMSaeConfig(SaeConfig):
+    expansion_factor: int = 1
+    batch_topk: bool = True
+    k: int = 16
+
+@dataclass
+class ALDMTrainConfig(TrainConfig):
+    sae: ALDMSaeConfig
+    num_workers: int = 48
+    lr: float = 3e-4
+    lr_scheduler: str = "linear"
+    auxk_alpha: float = 0.03125
+    wandb_log_frequency: int = 1000
+    wandb_project: str = "music_sae"
+
+@dataclass
+class ALDMRunConfig(ALDMTrainConfig):
     mixed_precision: str = "no"
-
     max_examples: int | None = None
-    """Maximum number of examples to use for training."""
-
     seed: int = 42
-    """Random seed for shuffling the dataset."""
     device: str = "cuda"
-    num_epochs: int = 1
+    num_epochs: int = 5
 
 
 def load_datasets_from_dirs(base_dirs, hookpoint, dtype=torch.float32):
@@ -46,9 +58,7 @@ def load_datasets_from_dirs(base_dirs, hookpoint, dtype=torch.float32):
     print(f"Concatenating datasets from {base_dirs}")
 
     for base_dir in base_dirs:
-        dataset = Dataset.load_from_disk(
-            os.path.join(base_dir, hookpoint), keep_in_memory=False
-        )
+        dataset = Dataset.load_from_disk(os.path.join(base_dir, hookpoint), keep_in_memory=False)
 
         # Set format for each dataset
         dataset.set_format(
@@ -75,7 +85,7 @@ def run():
         if rank == 0:
             print(f"Using DDP across {dist.get_world_size()} GPUs.")
 
-    args = parse(RunConfig)
+    args = parse(ALDMRunConfig)
     # add output_or_diff to the run name
     args.run_name = args.run_name + f"_{args.dataset_path[0].split('/')[-2]}"
 
@@ -85,7 +95,9 @@ def run():
     elif args.mixed_precision == "bf16" and torch.cuda.is_bf16_supported():
         dtype = torch.bfloat16
     args.dtype = dtype
-    print(f"Training in {dtype=}")
+    if not ddp or rank == 0:
+        print(f"Training in {dtype=}")
+        print(args)
     # Awkward hack to prevent other ranks from duplicating data preprocessing
     dataset_dict = {}
     if not ddp or rank == 0:
@@ -93,9 +105,7 @@ def run():
             if len(args.dataset_path) > 1:
                 dataset = load_datasets_from_dirs(args.dataset_path, hookpoint, dtype)
             else:
-                dataset = Dataset.load_from_disk(
-                    os.path.join(args.dataset_path[0], hookpoint), keep_in_memory=False
-                )
+                dataset = Dataset.load_from_disk(os.path.join(args.dataset_path[0], hookpoint), keep_in_memory=False)
             dataset.set_format(
                 type="torch",
                 columns=["activations", "timestep"],
@@ -111,9 +121,7 @@ def run():
         dist.barrier()
         if rank != 0:
             for hookpoint in args.hookpoints:
-                dataset = Dataset.load_from_disk(
-                    os.path.join(args.dataset_path, hookpoint), keep_in_memory=False
-                )
+                dataset = Dataset.load_from_disk(os.path.join(args.dataset_path[0], hookpoint), keep_in_memory=False)
                 dataset.set_format(
                     type="torch",
                     columns=["activations", "timestep"],

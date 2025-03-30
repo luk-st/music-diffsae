@@ -117,6 +117,8 @@ class CacheActivationsRunnerConfig:
     column: str = "caption"
     device: torch.device | str = "cuda"
     model_name: str = "sd-legacy/stable-diffusion-v1-5"
+    flatten_act_freq: bool = False
+    arbitrary_F_dims: list[int] | None = None
     dtype: torch.dtype = torch.float16
     num_inference_steps: int = 50
     seed: int = 42

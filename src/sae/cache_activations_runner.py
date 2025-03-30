@@ -295,6 +295,8 @@ class CacheActivationsRunner:
                     audio_length_in_s=self.cfg.audio_length_in_s,
                     num_waveforms_per_prompt=self.cfg.num_waveforms_per_prompt,
                     negative_prompt=self.cfg.negative_prompt,
+                    flatten_act_freq=self.cfg.flatten_act_freq,
+                    arbitrary_F_dims=self.cfg.arbitrary_F_dims,
                 )
 
             self.accelerator.wait_for_everyone()
@@ -320,8 +322,6 @@ class CacheActivationsRunner:
                             gathered_buffer_acts.shape[-2],
                             gathered_buffer_acts.shape[-1],
                         )
-
-                    print(f"{hook_name=} {gathered_buffer_acts.shape=}")
 
                     shard = self._create_shard(gathered_buffer_acts, hook_name)
 

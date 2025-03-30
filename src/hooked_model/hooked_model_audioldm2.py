@@ -3,10 +3,9 @@ from typing import Callable, Dict, List, Optional, Union
 import numpy as np
 import torch
 from diffusers import AudioLDM2Pipeline
+import einops
 
 from src.hooked_model.utils import locate_block, retrieve
-
-# from .hooked_model import HookedDiffusionModel
 
 
 class HookedAudioLDM2Model:
@@ -98,15 +97,6 @@ class HookedAudioLDM2Model:
             max_new_tokens=None,
         )
 
-        # Get timesteps for the diffusion process
-        # timesteps = self.get_timesteps(
-        #     num_inference_steps,
-        #     self.scheduler.config.num_train_timesteps,
-        #     self.scheduler.config.timestep_spacing,
-        #     self.scheduler.config.steps_offset,
-        #     device,
-        # )
-
         # Initialize latent vectors
         num_channels_latents = self.pipeline.unet.config.in_channels
         latents = self.pipeline.prepare_latents(
@@ -129,7 +119,6 @@ class HookedAudioLDM2Model:
             generated_prompt_embeds,
             **extra_step_kwargs,
         )
-
         audio = self._postprocess_latents(latents, output_type, original_waveform_length)
         return audio
 
@@ -216,6 +205,8 @@ class HookedAudioLDM2Model:
         save_input: bool = False,
         save_output: bool = True,
         unconditional: bool = False,
+        flatten_act_freq: bool = False,
+        arbitrary_F_dims: List[int] = None,
         **kwargs,
     ):
         """
@@ -228,9 +219,15 @@ class HookedAudioLDM2Model:
             dict() if save_input else None,
             dict() if save_output else None,
         )
+
+        if arbitrary_F_dims is not None:
+            assert len(arbitrary_F_dims) == len(positions_to_cache)
+        else:
+            arbitrary_F_dims = [None] * len(positions_to_cache)
+
         hooks = [
-            self._register_cache_hook(position, cache_input, cache_output, unconditional)
-            for position in positions_to_cache
+            self._register_cache_hook(position, cache_input, cache_output, unconditional, flatten_act_freq, F_dim)
+            for position, F_dim in zip(positions_to_cache, arbitrary_F_dims)
         ]
         hooks = [hook for hook in hooks if hook is not None]
 
@@ -271,6 +268,8 @@ class HookedAudioLDM2Model:
         cache_input: Dict,
         cache_output: Dict,
         unconditional: bool = False,
+        flatten_act_freq: bool = False,
+        freq_dim: int | None = None,
     ):
         block = locate_block(position, self.model)
 
@@ -280,9 +279,12 @@ class HookedAudioLDM2Model:
                     cache_input[position] = []
                 input_to_cache = retrieve(input, unconditional)
                 if len(input_to_cache.shape) == 4:
-                    input_to_cache = input_to_cache.view(input_to_cache.shape[0], input_to_cache.shape[1], -1).permute(
-                        0, 2, 1
-                    )
+                    if flatten_act_freq:
+                        input_to_cache = einops.rearrange(input_to_cache, 'b c t f -> b t (c f)')
+                    else:
+                        input_to_cache = einops.rearrange(input_to_cache, 'b c t f -> b (t f) c')
+                elif len(input_to_cache.shape) == 3 and freq_dim is not None and flatten_act_freq is True:
+                    input_to_cache = einops.rearrange(input_to_cache, 'b (t f) c -> b t (c f)', f=freq_dim)
                 cache_input[position].append(input_to_cache)
 
             if cache_output is not None:
@@ -290,9 +292,12 @@ class HookedAudioLDM2Model:
                     cache_output[position] = []
                 output_to_cache = retrieve(output, unconditional)
                 if len(output_to_cache.shape) == 4:
-                    output_to_cache = output_to_cache.view(
-                        output_to_cache.shape[0], output_to_cache.shape[1], -1
-                    ).permute(0, 2, 1)
+                    if flatten_act_freq:
+                        output_to_cache = einops.rearrange(output_to_cache, 'b c t f -> b t (c f)')
+                    else:
+                        output_to_cache = einops.rearrange(output_to_cache, 'b c t f -> b (t f) c')
+                elif len(output_to_cache.shape) == 3 and freq_dim is not None and flatten_act_freq is True:
+                    output_to_cache = einops.rearrange(output_to_cache, 'b (t f) c -> b t (c f)', f=freq_dim)
                 cache_output[position].append(output_to_cache)
 
         return block.register_forward_hook(hook, with_kwargs=True)

@@ -167,3 +167,5 @@ wandb/
 
 data/
 slurm_out/
+.cpu_venv/
+.vscode/

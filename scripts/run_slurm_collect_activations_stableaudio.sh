@@ -7,8 +7,8 @@
 #SBATCH --time=48:00:00
 #SBATCH --account=plgdynamic2-gpu-gh200
 #SBATCH --partition=plgrid-gpu-gh200
-#SBATCH --output=slurm_out/collect_activations/audioldm2_other.out
-#SBATCH --job-name=collect_activations_audioldm2_other
+#SBATCH --output=slurm_out/collect_activations/stableaudio_public2.out
+#SBATCH --job-name=collect_activations_stableaudio_public2
 
 module load ML-bundle/24.06a
 cd /net/scratch/hscra/plgrid/plglukaszst/projects/music-diffsae
@@ -18,4 +18,4 @@ source ./venv/bin/activate
 echo USER: $USER
 which python
 
-accelerate launch --num_processes 4 src/scripts/collect_activations_other.py
+accelerate launch --num_processes 4 src/scripts/collect_activations_stableaudio.py

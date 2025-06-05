@@ -102,7 +102,7 @@ class TrainConfig(Serializable):
                 variant = "batch_topk"
             elif self.sae.sample_topk:
                 variant = "sample_topk"
-            self.run_name = f"{variant}_expansion_factor{self.sae.expansion_factor}_k{self.sae.k}_multi_topk{self.sae.multi_topk}_auxk_alpha{self.auxk_alpha}"
+            self.run_name = f"{variant}_expansion_factor{self.sae.expansion_factor}_k{self.sae.k}_multi_topk{self.sae.multi_topk}_auxk_alpha{self.auxk_alpha}_lr{self.lr}"
 
 
 @dataclass
@@ -133,6 +133,7 @@ class CacheActivationsRunnerConfig:
     hf_num_shards: int | None = None
     hf_revision: str = "main"
     hf_is_private_repo: bool = False
+    along_freqs: bool = False
 
     def __post_init__(self):
         if self.new_cached_activations_path is None:

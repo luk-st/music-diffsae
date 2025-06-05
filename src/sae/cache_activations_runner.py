@@ -290,6 +290,7 @@ class CacheActivationsRunner:
                     prompt=prompt,
                     output_type="latent",
                     num_inference_steps=self.cfg.num_inference_steps,
+                    device=self.accelerator.device,
                     positions_to_cache=self.cfg.hook_names,
                     guidance_scale=self.cfg.guidance_scale,
                     audio_length_in_s=self.cfg.audio_length_in_s,
@@ -297,6 +298,7 @@ class CacheActivationsRunner:
                     negative_prompt=self.cfg.negative_prompt,
                     flatten_act_freq=self.cfg.flatten_act_freq,
                     arbitrary_F_dims=self.cfg.arbitrary_F_dims,
+                    along_freqs=self.cfg.along_freqs,
                 )
 
             self.accelerator.wait_for_everyone()

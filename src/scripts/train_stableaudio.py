@@ -18,16 +18,16 @@ from src.sae.trainer import SaeTrainer
 
 
 @dataclass
-class ALDMSaeConfig(SaeConfig):
+class SASaeConfig(SaeConfig):
     expansion_factor: int = 4
     batch_topk: bool = True
     k: int = 24
 
 @dataclass
-class ALDMTrainConfig(TrainConfig):
-    sae: ALDMSaeConfig
+class SATrainConfig(TrainConfig):
+    sae: SASaeConfig
     num_workers: int = 48
-    lr: float = 3e-5
+    lr: float = 8e-6
     lr_scheduler: str = "linear"
     auxk_alpha: float = 0.03125
     wandb_log_frequency: int = 1000
@@ -35,12 +35,12 @@ class ALDMTrainConfig(TrainConfig):
     lr_warmup_steps: int = 1000
 
 @dataclass
-class ALDMRunConfig(ALDMTrainConfig):
+class SARunConfig(SATrainConfig):
     mixed_precision: str = "no"
     max_examples: int | None = None
     seed: int = 42
     device: str = "cuda"
-    num_epochs: int = 5
+    num_epochs: int = 2
 
 
 def load_datasets_from_dirs(base_dirs, hookpoint, dtype=torch.float32):
@@ -86,7 +86,7 @@ def run():
         if rank == 0:
             print(f"Using DDP across {dist.get_world_size()} GPUs.")
 
-    args = parse(ALDMRunConfig)
+    args = parse(SARunConfig)
     # add output_or_diff to the run name
     args.run_name = args.run_name + f"_{args.dataset_path[0].split('/')[-2]}"
 

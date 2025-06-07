@@ -17,7 +17,6 @@ class HookedStableAudioModel:
         model: torch.nn.Module,
         scheduler,
         encode_prompt: Callable,
-        get_timesteps: Callable,
         pipeline: StableAudioPipeline,
         vae: torch.nn.Module,
         accelerator: Accelerator,
@@ -29,7 +28,6 @@ class HookedStableAudioModel:
             model (torch.nn.Module): The base diffusion model (UNet or Transformer)
             scheduler: The noise scheduler
             encode_prompt (Callable): Function to encode text prompts into embeddings
-            get_timesteps (Callable): Function to generate timesteps for inference
             vae (torch.nn.Module, optional): The VAE model for latent encoding/decoding
         """
         # Core components
@@ -37,7 +35,6 @@ class HookedStableAudioModel:
         self.scheduler = scheduler
         self.vae = vae
         self.encode_prompt = encode_prompt
-        self.get_timesteps = get_timesteps
         self.pipeline = pipeline
         self.accelerator = accelerator
 
@@ -91,7 +88,6 @@ class HookedStableAudioModel:
                 )
 
         device = self.accelerator.device
-        print(f"Device: {device}")
         do_classifier_free_guidance = guidance_scale > 1.0
 
         prompt_embeds = self.pipeline.encode_prompt(

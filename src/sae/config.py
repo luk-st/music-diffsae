@@ -87,6 +87,8 @@ class TrainConfig(Serializable):
     distribute_modules: bool = False
     """Store a single copy of each SAE, instead of copying them across devices."""
 
+    num_epochs: int = 5
+
     save_every: int = 5000
     """Save SAEs every `save_every` steps."""
 
@@ -102,7 +104,7 @@ class TrainConfig(Serializable):
                 variant = "batch_topk"
             elif self.sae.sample_topk:
                 variant = "sample_topk"
-            self.run_name = f"{variant}_expansion_factor{self.sae.expansion_factor}_k{self.sae.k}_multi_topk{self.sae.multi_topk}_auxk_alpha{self.auxk_alpha}_lr{self.lr}"
+            self.run_name = f"{variant}_expansion_factor{self.sae.expansion_factor}_k{self.sae.k}_multi_topk{self.sae.multi_topk}_auxk_alpha{self.auxk_alpha}_lr{self.lr}_epochs{self.num_epochs}"
 
 
 @dataclass
